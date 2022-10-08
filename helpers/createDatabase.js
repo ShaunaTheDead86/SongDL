@@ -6,8 +6,8 @@ export default async function createDatabase() {
 	const pgClient = new Client({
 		host: 'localhost',
 		port: 5432,
-		user: 'shauna',
-		password: 'shauna',
+		user: 'postgres',
+		password: '',
 		database: 'songs',
 		ssl: false,
 	});

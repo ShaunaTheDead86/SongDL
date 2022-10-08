@@ -4,5 +4,26 @@
 		"fs": "^0.0.1-security",
 		"node-fetch": "^3.2.10",
 		"pg": "^8.8.0"
-	}
+	},
+	"devDependencies": {
+		"electron": "^21.1.0"
+	},
+	"name": "songdl",
+	"version": "1.0.0",
+	"description": "A helper program for maintaining your Clone Hero song list",
+	"main": "main.cjs",
+	"scripts": {
+		"start": "electron .",
+		"test": "npm run test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShaunaTheDead86/SongDL.git"
+	},
+	"author": "Shauna Empringham",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/ShaunaTheDead86/SongDL/issues"
+	},
+	"homepage": "https://github.com/ShaunaTheDead86/SongDL#readme"
 }
