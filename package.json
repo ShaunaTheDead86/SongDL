@@ -1,0 +1,8 @@
+{
+	"type": "module",
+	"dependencies": {
+		"fs": "^0.0.1-security",
+		"node-fetch": "^3.2.10",
+		"pg": "^8.8.0"
+	}
+}
