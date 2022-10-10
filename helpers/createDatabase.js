@@ -1,13 +1,12 @@
+import fsPromises from 'fs/promises';
 import pg from 'pg';
-import songData from '../song_data.json' assert { type: 'json' };
 
 export default async function createDatabase() {
-	const Client = pg.Client;
-	const pgClient = new Client({
+	const pgClient = new pg.Client({
 		host: 'localhost',
 		port: 5432,
-		user: 'postgres',
-		password: '',
+		user: 'shauna',
+		password: 'shauna',
 		database: 'songs',
 		ssl: false,
 	});
@@ -15,7 +14,16 @@ export default async function createDatabase() {
 	await pgClient.connect();
 
 	// convert string from file to array of JSONs and sort by id
-	const songs = songData.map((e) => JSON.parse(e)).sort((a, b) => a.id - b.id);
+	// const songs = songData.map((e) => JSON.parse(e)).sort((a, b) => a.id - b.id);
+	const songs = await fsPromises
+		.readFile('./song_data.json', {
+			encoding: 'utf-8',
+		})
+		.then((res) =>
+			JSON.parse(res)
+				.map((e) => JSON.parse(e))
+				.sort((a, b) => a.id - b.id)
+		);
 
 	// function to check if something is an object and not null
 	const isObj = (e) => typeof e === 'object' && e !== null;
@@ -223,7 +231,7 @@ export default async function createDatabase() {
 
 	await pgClient.end();
 
-	return 'Database created successfully';
+	console.log('Database created successfully');
 }
 
 createDatabase();

@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import fs from 'fs';
+import fsPromises from 'fs/promises';
 import pg from 'pg';
 
 export default async function getData() {
@@ -13,7 +13,6 @@ export default async function getData() {
 		ssl: false,
 	});
 
-	const fsPromises = fs.promises;
 	const countPath = 'https://chorus.fightthe.pw/api/count';
 	const songsPath = 'https://chorus.fightthe.pw/api/latest?from=';
 
@@ -29,7 +28,7 @@ export default async function getData() {
 	await pgClient.end();
 
 	const songs = await fsPromises
-		.readFile('../song_data.json', {
+		.readFile('./song_data.json', {
 			encoding: 'utf-8',
 		})
 		.then((res) =>
@@ -51,7 +50,8 @@ export default async function getData() {
 		let insertedCount = 0;
 		let from = 0;
 
-		while (from <= songCount) {
+		while (from <= 20) {
+			// while (from <= songCount) {
 			await fetch(songsPath + from).then(async (res) => {
 				from + 20 <= songCount ? (from += 20) : (from += songCount - from + 1);
 				console.log('INSERTED, FROM: ', insertedCount, from);
@@ -82,3 +82,5 @@ export default async function getData() {
 
 	return songs;
 }
+
+getData();
