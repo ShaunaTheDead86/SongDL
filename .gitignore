@@ -132,3 +132,5 @@ dist
 
 # Custom ignore
 song_data.json
+local_song_data.json
+missing_song_data.json
