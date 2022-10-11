@@ -1,12 +1,13 @@
+import fs from 'fs';
 import fsPromises from 'fs/promises';
 
 export default async function getLocalSongs() {
-	const localSongPath = '/media/shauna/01D8C557A46097D0/Songs_Test/';
-	const localSongs = await fsPromises
-		.readFile('./local_song_data.json', {
-			encoding: 'utf-8',
-		})
-		.then((res) => (res === '' ? [] : JSON.parse(res)));
+	const localSongPath = '/media/shauna/01D8C557A46097D0/Songs/';
+	const localSongs = fs.existsSync('./local_song_data.json')
+		? await fsPromises
+				.readFile('./local_song_data.json', 'utf-8')
+				.then((res) => JSON.parse(res))
+		: [];
 
 	const readFile = async (path) => {
 		return await fsPromises
@@ -36,24 +37,29 @@ export default async function getLocalSongs() {
 			.catch((err) => console.log(err));
 	};
 
-	const localSongExists = async (song) => {
+	const localSongExists = (song) => {
 		if (localSongs.length === 0) return false;
 
-		const exists = localSongs.every((localSong) => {
-			console.log('# 1 LOCAL SONG: ', localSong, song);
-			return Object.keys(localSong).every((key) => {
-				console.log('# 2 LOCAL SONG: ', localSong[key], song[key]);
-				return localSong[key] !== song[key];
-			});
-		});
+		const exists = localSongs.some((localSong) =>
+			Object.keys(localSong).every((key) => localSong[key] === song[key])
+		);
 
-		console.log('# BEFORE RETURN', song, localSongs, exists);
 		return exists;
 	};
 
-	const getSongs = async (files) => {
-		const files = await readDir(localSongPath);
-		return files.flat(3).map((song) => {
+	const flattenArray = (arr) => {
+		const flatArr = [];
+
+		arr.forEach((e) =>
+			Array.isArray(e) ? flatArr.push(...flattenArray(e)) : flatArr.push(e)
+		);
+
+		return flatArr;
+	};
+
+	const getSongs = async () => {
+		const files = flattenArray(await readDir(localSongPath));
+		return files.map((song) => {
 			const keyRegex = /.+(?=\s\=\s)/g;
 			const valueRegex = /(?<=\s\=\s).+/g;
 			const keys = song.match(keyRegex);
@@ -64,31 +70,26 @@ export default async function getLocalSongs() {
 				songObj[key] = values[i] ? values[i] : '';
 			});
 
-			if (localSongs.length > 0) {
-				console.log('# SONG OBJ', songObj);
-				const exists = localSongExists(songObj);
-				console.log('# EXISTS?', exists);
-			}
+			const exists = localSongExists(songObj);
+			if (exists) return;
 
-			console.log('RETURN SONG OBJ', songObj);
 			return songObj;
 		});
 	};
 
 	const writeToFile = async () => {
-		const data = await getSongs();
+		const data = (await getSongs()).filter((e) => e !== null);
 
-		if (data.filter((e) => e).length === 0) return;
+		if (data.length === localSongs.length)
+			return console.log('ALL SONGS ALREADY EXIST LOCALLY');
 
 		return await fsPromises
-			.writeFile('./local_song_data.json', data)
-			.then((res) => console.log('FILES WRITTEN'))
+			.writeFile('./local_song_data.json', JSON.stringify(data))
+			.then((res) => console.log('NEW SONGS WRITTEN TO LOCAL FILE'))
 			.catch((err) => console.log(err));
 	};
 
 	await writeToFile();
-
-	return;
 }
 
 getLocalSongs();

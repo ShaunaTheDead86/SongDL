@@ -8,6 +8,8 @@
 		"@testing-library/jest-dom": "^5.16.5",
 		"@testing-library/react": "^13.4.0",
 		"@testing-library/user-event": "^13.5.0",
+		"google-auth-library": "^8.5.2",
+		"googleapis": "^108.0.0",
 		"node-fetch": "^3.2.10",
 		"pg": "^8.8.0",
 		"react": "^18.2.0",
