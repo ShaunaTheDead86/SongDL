@@ -134,3 +134,6 @@ dist
 song_data.json*
 local_song_data.json*
 missing_song_data.json*
+credentials.json*
+token.json*
+package-lock.json
