@@ -45,5 +45,3 @@ export default async function getMissingSongs() {
 		.then((res) => console.log('MISSING SONGS WRITTEN TO LOCAL FILE'))
 		.catch((err) => console.log(err));
 }
-
-getMissingSongs();

@@ -91,5 +91,3 @@ export default async function getLocalSongs() {
 
 	await writeToFile();
 }
-
-getLocalSongs();

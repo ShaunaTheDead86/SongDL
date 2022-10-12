@@ -233,5 +233,3 @@ export default async function createDatabase() {
 
 	console.log('Database created successfully');
 }
-
-createDatabase();
