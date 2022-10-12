@@ -131,9 +131,9 @@ dist
 .pnp.*
 
 # Custom ignore
-song_data.json*
-local_song_data.json*
-missing_song_data.json*
-credentials.json*
-token.json*
+song_data.json
+local_song_data.json
+missing_song_data.json
+credentials.json
+token.json
 package-lock.json
