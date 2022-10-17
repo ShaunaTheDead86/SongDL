@@ -102,6 +102,7 @@ export default async function downloadFile(fileId, savePath) {
 	}
 
 	const isFolder = (e) => e === 'application/vnd.google-apps.folder';
+	const cleanInput = (e) => e.replace(/[^\s\w]/g, '');
 
 	const fileData = await getFileData(fileId);
 
@@ -123,7 +124,9 @@ export default async function downloadFile(fileId, savePath) {
 	}
 
 	if (fileData) {
-		const { id, name, mimeType } = fileData;
+		const id = fileData.id;
+		const name = cleanInput(fileData.name);
+		const mimeType = fileData.mimeType;
 
 		const zipPath = path.join(
 			savePath + name + (isFolder(mimeType) ? '.zip' : '')
