@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import JSZip from 'jszip';
-import { isPromise } from 'util/types';
 
 export default async function exportSongs() {
 	const downloadsDir = '/media/shauna/01D8C557A46097D0/Downloads/';

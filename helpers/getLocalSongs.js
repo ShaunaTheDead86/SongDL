@@ -1,50 +1,26 @@
 import fs from 'fs';
-import fsPromises from 'fs/promises';
 
-export default async function getLocalSongs() {
+export default function getLocalSongs() {
 	const localSongPath = '/media/shauna/01D8C557A46097D0/Songs/';
 	const localSongs = fs.existsSync('./local_song_data.json')
-		? await fsPromises
-				.readFile('./local_song_data.json', 'utf-8')
-				.then((res) => JSON.parse(res))
+		? JSON.parse(fs.readFileSync('./local_song_data.json', 'utf-8'))
 		: [];
 
-	const readFile = async (path) => {
-		return await fsPromises
-			.readFile(path, 'utf-8')
-			.then((res) => res)
-			.catch((err) => console.log(err));
+	const readFile = (path) => {
+		return fs.readFileSync(path, 'utf-8');
 	};
 
-	const readDir = async (path) => {
-		const promises = await fsPromises
-			.readdir(path, { withFileTypes: true })
-			.then((res) => {
-				return res.map((file) => {
-					const filePath = path + file.name;
-					const dirPath = filePath + '/';
+	const readDir = (path) => {
+		return fs
+			.readdirSync(path, { withFileTypes: true })
+			.map((file) => {
+				const filePath = path + file.name;
+				const dirPath = filePath + '/';
 
-					if (file.isDirectory()) return readDir(dirPath);
-					if (file.name === 'song.ini') return readFile(filePath);
-				});
+				if (file.isDirectory()) return readDir(dirPath);
+				if (file.name === 'song.ini') return readFile(filePath);
 			})
-			.catch((err) => console.log(err));
-
-		return Promise.all(promises)
-			.then((res) => {
-				return res.filter((e) => e);
-			})
-			.catch((err) => console.log(err));
-	};
-
-	const localSongExists = (song) => {
-		if (localSongs.length === 0) return false;
-
-		const exists = localSongs.some((localSong) =>
-			Object.keys(localSong).every((key) => localSong[key] === song[key])
-		);
-
-		return exists;
+			.filter((e) => e);
 	};
 
 	const flattenArray = (arr) => {
@@ -57,37 +33,56 @@ export default async function getLocalSongs() {
 		return flatArr;
 	};
 
-	const getSongs = async () => {
-		const files = flattenArray(await readDir(localSongPath));
-		return files.map((song) => {
+	const getSongs = () => {
+		const songs = flattenArray(readDir(localSongPath)).map((song) => {
 			const keyRegex = /.+(?=\s\=\s)/g;
 			const valueRegex = /(?<=\s\=\s).+/g;
 			const keys = song.match(keyRegex);
 			const values = song.match(valueRegex);
 			const songObj = {};
 
+			if (!Array.isArray(keys) || !Array.isArray(values)) return;
 			keys.forEach((key, i) => {
 				songObj[key] = values[i] ? values[i] : '';
 			});
 
-			const exists = localSongExists(songObj);
-			if (exists) return;
-
 			return songObj;
+		});
+
+		if (songs.length === localSongs.length) return songs;
+
+		const filter = [];
+		const goodSong = (e) =>
+			e &&
+			e !== null &&
+			e.artist &&
+			e.name &&
+			e.artist !== null &&
+			e.name !== null;
+
+		return songs.filter((song) => {
+			if (!goodSong(song)) return false;
+
+			const songString = JSON.stringify(song);
+
+			if (filter.length > 0 && filter.includes(songString)) return false;
+
+			filter.push(songString);
+			return true;
 		});
 	};
 
-	const writeToFile = async () => {
-		const data = (await getSongs()).filter((e) => e !== null);
+	const writeToFile = () => {
+		const data = getSongs();
 
-		if (data.length === localSongs.length)
-			return console.log('ALL SONGS ALREADY EXIST LOCALLY');
+		// if (data.length === localSongs.length)
+		// 	return console.log('ALL SONGS ALREADY EXIST LOCALLY');
 
-		return await fsPromises
-			.writeFile('./local_song_data.json', JSON.stringify(data))
-			.then((res) => console.log('NEW SONGS WRITTEN TO LOCAL FILE'))
-			.catch((err) => console.log(err));
+		console.log(data.length, localSongs.length);
+		return fs.writeFileSync('./local_song_data.json', JSON.stringify(data));
 	};
 
-	await writeToFile();
+	writeToFile();
 }
+
+getLocalSongs();
