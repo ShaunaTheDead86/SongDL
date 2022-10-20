@@ -1,5 +1,6 @@
 import fs, { readdir, readdirSync } from 'fs';
 import path from 'path';
+import mv from 'mv';
 
 export default function organizeLocalSongs() {
 	const localSongPath = '/media/shauna/01D8C557A46097D0/Songs/';
@@ -7,8 +8,10 @@ export default function organizeLocalSongs() {
 		? JSON.parse(fs.readFileSync('./local_song_data.json', 'utf-8'))
 		: [];
 
-	const removeSpaces = (arr) => {
-		return arr.map((e) => e.replace(/^\s+/g, '').replace(/\s+$/g, ''));
+	const removeSpaces = (input) => {
+		return Array.isArray(input)
+			? input.map((e) => e.replace(/^\s+/g, '').replace(/\s+$/g, ''))
+			: input.replace(/^\s+/g, '').replace(/\s+$/g, '').replace(/\ \ /g, `\ `);
 	};
 
 	const readFile = (path) => {
@@ -112,60 +115,101 @@ export default function organizeLocalSongs() {
 
 	const moveDirs = () => {
 		const dirs = flattenArray(getDirPaths(localSongPath));
-		const cleanDir = (e) => e.replace(/[^\w\s\/]/g, '');
-		const cleanInput = (e) =>
-			e
-				.replace(/^\s+/g, '')
-				.replace(/\s+$/g, '')
-				.replace(/[^\w\s]/g, '')
-				.replace(/\s\s/g, ' ');
+		const cleanInput = (e) => removeSpaces(e.replace(/[^\w\s\(\)\!]/g, `\ `));
+		const getFirstLetter = (e) =>
+			typeof e === 'string' ? e.match(/\w/)[0].toUpperCase() : e;
+		const checkSlash = (e) => (e === '' || e === ' ' ? '' : '/');
 
 		dirs.forEach((dir, i) => {
-			console.log(`Moving dirs: ${i} of ${dirs.length}`);
 			const songData = fs.existsSync(`${dir.path}song.ini`)
 				? readFile(`${dir.path}song.ini`)
 				: null;
-			if (songData === null) return;
+			if (songData === null)
+				return fs.readdirSync(dir.path).length === 0
+					? fs.rmdirSync(dir.path)
+					: console.log('Dir not empty');
 
 			const songName = cleanInput(songData.name);
-			const artistName = cleanInput(songData.artist);
-
-			if (songName === ' ') throw songData;
-
-			const newPath = cleanDir(
-				`${localSongPath}${artistName[0].toUpperCase()}/${artistName}/${songName}/`
-			);
+			const artistName = cleanInput(songData.artist).replace(/^the\ /gi, '');
+			const artistLetter = getFirstLetter(artistName).toUpperCase();
+			const newPath = `${localSongPath}${artistLetter}${checkSlash(
+				artistLetter
+			)}${artistName}${checkSlash(artistName)}${songName}${checkSlash(
+				songName
+			)}`;
 
 			if (!fs.existsSync(newPath)) fs.mkdirSync(newPath, { recursive: true });
 
 			fs.readdirSync(dir.path, 'utf-8').forEach((fileName) => {
-				const filePath = `${newPath}${fileName}`;
+				const originPath = `${dir.path}${fileName}`;
+				const newFilePath = `${newPath}${fileName}`;
 
-				if (fs.existsSync(filePath)) {
-					fs.writeFileSync(filePath, fs.readFileSync(filePath));
-					fs.rmSync(filePath);
+				if (newFilePath !== originPath) {
+					console.log(
+						`Moving file ${fileName} from ${dir.path} to ${newFilePath}`
+					);
+					mv(originPath, newFilePath, { mkdirp: true }, (err) => {
+						directorylinux;
+						if (err) console.log(err);
+					});
 				}
 			});
-			if (fs.existsSync(dir.path) && fs.readdirSync(dir.path).length === 0)
-				fs.rmdirSync(dir.path, { recursive: true });
+
+			if (fs.readdirSync(dir.path).length === 0) fs.rmdirSync(dir.path);
 		});
 	};
 
-	moveDirs();
+	const checkBadSongs = () => {
+		const badSongsPath = '/home/shauna/Clone Hero/badsongs.txt';
+		const songsPath = `/media/shauna/01D8C557A46097D0/Songs/`;
+		const badSongsText = fs.existsSync(badSongsPath)
+			? fs.readFileSync(badSongsPath, 'utf-8')
+			: '';
+
+		const dirRegex = new RegExp('^' + songsPath + '.+', 'gm');
+		const dirMatch = badSongsText.match(dirRegex);
+
+		if (dirMatch !== null) {
+			dirMatch.forEach((dir) => {
+				if (fs.existsSync(dir)) fs.rmdirSync(dir, { force: true });
+			});
+		}
+
+		const sixFretRegex = new RegExp(`^` + songsPath + `.+(?=[\(][\/])`, 'gm');
+		const sixFretMatch = badSongsText.match(sixFretRegex);
+
+		if (sixFretMatch !== null) {
+			sixFretMatch.forEach((dir) => {
+				const cleanDir = dir.replace(/^\ /, '').replace(/\ $/, '');
+
+				if (fs.existsSync(cleanDir)) {
+					fs.readdirSync(cleanDir, 'utf-8').forEach((file) => {
+						fs.rmSync(cleanDir + '/' + file);
+					});
+					fs.rmdirSync(cleanDir, { force: true });
+				}
+			});
+		}
+	};
 
 	const writeToFile = () => {
 		const data = getSongs();
+		const fileData = data.map((e) => e.file);
 
 		if (data.length === localSongs.length) {
 			const localStrs = localSongs.map((e) => JSON.stringify(e));
-			if (data.every((song) => localStrs.includes(JSON.stringify(song.file)))) {
+			const dataStrs = fileData.map((e) => JSON.stringify(e));
+			if (dataStrs.every((songStr) => localStrs.includes(songStr))) {
 				return console.log('ALL SONGS ALREADY EXIST LOCALLY');
 			}
 		}
-		// return fs.writeFileSync('./local_song_data.json', JSON.stringify(data));
+
+		return fs.writeFileSync('./local_song_data.json', JSON.stringify(fileData));
 	};
 
-	// writeToFile();
+	moveDirs();
+	checkBadSongs();
+	writeToFile();
 }
 
 organizeLocalSongs();
