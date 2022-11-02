@@ -162,26 +162,25 @@ const getAllDriveFiles = async (sources) => {
 	const files = [];
 
 	for (const source of sources) {
-		console.log('SOURCE: ', source);
 		const obj = getFileObj(await readDriveFolder(service, source.id));
 
 		if (obj.shortcuts.length > 0) {
 			const folders = await processShortcuts(obj.shortcuts);
-			files.push([...(await getAllDriveFiles(folders))]);
+			files.push(...(await getAllDriveFiles(folders)));
 		}
 
 		if (obj.folders.length > 0) {
-			files.push([...(await getAllDriveFiles(obj.folders))]);
+			files.push(...(await getAllDriveFiles(obj.folders)));
 		}
 
-		files.push([...obj.files]);
+		files.push(...obj.files);
 	}
 
 	console.log(files);
 	return files;
 };
 
-const files = getAllDriveFiles(sources);
+const files = await getAllDriveFiles(sources);
 fs.writeFileSync('../files.json', JSON.stringify(files));
 
 // fs.writeFileSync('./sources.json', JSON.stringify(newSources));
