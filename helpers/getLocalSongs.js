@@ -75,8 +75,8 @@ export default function getLocalSongs() {
 	const writeToFile = () => {
 		const data = getSongs();
 
-		// if (data.length === localSongs.length)
-		// 	return console.log('ALL SONGS ALREADY EXIST LOCALLY');
+		if (data.length === localSongs.length)
+			return console.log('ALL SONGS ALREADY EXIST LOCALLY');
 
 		console.log(data.length, localSongs.length);
 		return fs.writeFileSync('./local_song_data.json', JSON.stringify(data));

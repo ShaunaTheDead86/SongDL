@@ -1,18 +1,8 @@
 import fetch from 'node-fetch';
-import fsPromises from 'fs/promises';
+import fs from 'fs';
 import pg from 'pg';
 
-export default async function getData() {
-	const Client = pg.Client;
-	const pgClient = new Client({
-		host: 'localhost',
-		port: 5432,
-		user: 'shauna',
-		password: 'shauna',
-		database: 'songs',
-		ssl: false,
-	});
-
+export default async function getData(pgClient, localSongs, dbSongs) {
 	const countPath = 'https://chorus.fightthe.pw/api/count';
 	const songsPath = 'https://chorus.fightthe.pw/api/latest?from=';
 
@@ -20,53 +10,59 @@ export default async function getData() {
 		res.text().then((res) => Number(res))
 	);
 
-	await pgClient.connect();
-	const dbSongs = await pgClient
-		.query(`SELECT * FROM songs;`)
-		.then((res) => res.rows)
-		.catch((err) => console.log(err));
-	await pgClient.end();
-
-	const songs = await fsPromises
-		.readFile('./song_data.json', {
-			encoding: 'utf-8',
-		})
-		.then((res) =>
-			JSON.parse(res)
+	const readSongData = () =>
+		JSON.parse(
+			fs
+				.readFileSync('./song_data.json', {
+					encoding: 'utf-8',
+				})
 				.map((e) => JSON.parse(e))
 				.sort((a, b) => a.id - b.id)
 		);
 
-	const sourcesIdentical =
-		dbSongs.some((dbSong) => songs.some((song) => dbSong.id === song.id)) &&
-		songs.some((dbSong) => dbSongs.some((song) => dbSong.id === song.id));
+	const songs = fs.existsSync('./song_data.json') ? readSongData() : [];
 
-	if (sourcesIdentical) console.log('Database and file contain identical data');
+	const deepEqual = (a, b) => {
+		if (!Array.isArray(a) && !Array.isArray(b)) return false;
 
-	// function to clean inputs before writing to file
-	const cleanInput = (e) => e.replace(/\'/, '');
+		return (
+			a.every((aEle, i) =>
+				Array.isArray(aEle) ? deepEqualArr(aEle, b[i]) : aEle === b[i]
+			) &&
+			b.every((bEle, i) =>
+				Array.isArray(bEle) ? deepEqualArr(bEle, a[i]) : bEle === a[i]
+			)
+		);
+	};
+
+	if (deepEqual(localSongs, dbSongs))
+		return console.log('Database and file contain identical data');
 
 	try {
-		let insertedCount = 0;
+		const songs = [];
 		let from = 0;
 
 		while (from <= 20) {
 			// while (from <= songCount) {
-			await fetch(songsPath + from).then(async (res) => {
-				from + 20 <= songCount ? (from += 20) : (from += songCount - from + 1);
-				console.log('INSERTED, FROM: ', insertedCount, from);
-				await res.json().then((res) => {
-					res.songs.forEach((song) => {
-						if (!songs.some((e) => song.id === e.id)) {
-							songs.push(JSON.parse(cleanInput(JSON.stringify(song))));
-							insertedCount++;
-						}
-					});
-				});
-			});
+			songs.push(
+				fetch(songsPath + from).then(async (res) => {
+					if (from + 20 <= songCount) from += 20;
+					else from += songCount - from + 1;
+					return [...res];
+					// .then((res) => {
+					// res.songs.forEach((song) => {
+					// 		songs.push(JSON.parse(cleanInput(JSON.stringify(song))));
+					// 		insertedCount++;
+					// 	}
+					// });
+					// });
+				})
+			);
 		}
 
-		if (insertedCount > 0) {
+		throw console.log(songs[0]);
+
+		if (songs.length > 0) {
 			await fsPromises
 				.writeFile(
 					'./song_data.json',
@@ -82,3 +78,5 @@ export default async function getData() {
 
 	return songs;
 }
+
+getData()
