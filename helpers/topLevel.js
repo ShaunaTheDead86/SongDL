@@ -6,18 +6,49 @@ import { google } from 'googleapis';
 
 // const sources = fs.existsSync('./sources.json')
 // 	? JSON.parse(fs.readFileSync('./sources.json', 'utf-8'))
-// 	: [
-// 			'1kgPCEt990poTNQC5tM0x8ghKOLVgDIZt',
-// 			'1NqgS3ZcgtJkawaptp49WKbXR4MIohoiU',
-// 			'1aLXbFIFQto22MNa_hfkyeXCrAVbZsPj-',
-// 			'1AvmWyROT4qECfvwwq8hXy5Bye2bDCB6J',
-// 			'1vex6WDlj70XjUHTU1Y0yvKDx1060-71E',
-// 			'1AL_ilZu_di83Kt1o6EfVDCp5qpLAIhfT',
-// 			'1T9NnI2P00FAJpgEF7nW_OUARRwWdz_ic',
-// 			'1daRhysvylcEAvR8iGsnV-Kxy1C19x3d8',
-// 			'1NYj77jI1i77FQfpjdrgLEkMDNEnpPunL',
-// 			'15zIFxkBDPUceLacBsLIZWvbOeM3HmdWw',
-// 	  ];
+// 	:
+const sources = [
+	{
+		id: '1kgPCEt990poTNQC5tM0x8ghKOLVgDIZt',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1NqgS3ZcgtJkawaptp49WKbXR4MIohoiU',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1aLXbFIFQto22MNa_hfkyeXCrAVbZsPj-',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1AvmWyROT4qECfvwwq8hXy5Bye2bDCB6J',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1vex6WDlj70XjUHTU1Y0yvKDx1060-71E',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1AL_ilZu_di83Kt1o6EfVDCp5qpLAIhfT',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1T9NnI2P00FAJpgEF7nW_OUARRwWdz_ic',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1daRhysvylcEAvR8iGsnV-Kxy1C19x3d8',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '1NYj77jI1i77FQfpjdrgLEkMDNEnpPunL',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+	{
+		id: '15zIFxkBDPUceLacBsLIZWvbOeM3HmdWw',
+		mimeType: 'application/vnd.google-apps.folder',
+	},
+];
 
 // const songParams = [
 // 	'name',
@@ -92,7 +123,7 @@ const readDriveFile = async (service, fileId) => {
 		.get({
 			fileId: fileId,
 			media: 'json',
-			fields: 'id, mimeType, shortcutDetails',
+			fields: '*',
 		})
 		.then((res) => res.data)
 		.catch((err) => console.log(err));
@@ -149,13 +180,6 @@ const processShortcuts = async (shortcuts) => {
 	return folders;
 };
 
-const sources = [
-	{
-		id: '1kgPCEt990poTNQC5tM0x8ghKOLVgDIZt',
-		mimeType: 'application/vnd.google-apps.folder',
-	},
-];
-
 const getSubFolder = async (service, fileId) => {};
 
 const getAllDriveFiles = async (sources) => {
@@ -176,12 +200,38 @@ const getAllDriveFiles = async (sources) => {
 		files.push(...obj.files);
 	}
 
-	console.log(files);
 	return files;
 };
 
-const files = await getAllDriveFiles(sources);
-fs.writeFileSync('../files.json', JSON.stringify(files));
+const getAllDriveFolders = async (sources) => {
+	const parentFolders = [];
+
+	for (const source of sources) {
+		const obj = getFileObj(await readDriveFolder(service, source.id));
+
+		if (obj.shortcuts.length > 0) {
+			sources.push(
+				...(await getAllDriveFolders(await processShortcuts(obj.shortcuts)))
+			);
+		}
+
+		if (obj.folders.length > 0) {
+			sources.push(...(await getAllDriveFolders(obj.folders)));
+		}
+
+		if (obj.files.length > 0) {
+			parentFolders.push({ id: source.id, mimeType: source.mimeType, files: obj.files });
+		}
+	}
+
+	return parentFolders;
+};
+
+const newSources = getAllDriveFolders(sources);
+fs.writeFileSync('./newSources.json', JSON.stringify(newSources));
+
+// const files = await getAllDriveFiles(sources);
+// fs.writeFileSync('../files.json', JSON.stringify(files));
 
 // fs.writeFileSync('./sources.json', JSON.stringify(newSources));
 
